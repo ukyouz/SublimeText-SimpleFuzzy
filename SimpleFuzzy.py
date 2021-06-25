@@ -52,18 +52,18 @@ class GrepFileLinesThread(threading.Thread):
     def run(self):
         liens = []
         with open(self.filename, 'r', encoding='utf-8') as fs:
-        	try:
-	            lines = fs.readlines()
-	            self.result = [
-	                sublime.ListInputItem(
-	                    text=line_str.strip().replace('\t', ''),
-	                    value=(self.filename, line_no + 1),
-	                    annotation='%s:%s'%(self.rel_filename, line_no+1),
-	                ) for line_no, line_str in enumerate(lines)
-	                if len(line_str.strip()) > 0
-	            ]
-	        except UnicodeDecodeError:
-	        	self.result = []
+            try:
+                lines = fs.readlines()
+                self.result = [
+                    sublime.ListInputItem(
+                        text=line_str.strip().replace('\t', ''),
+                        value=(self.filename, line_no + 1),
+                        annotation='%s:%s'%(self.rel_filename, line_no+1),
+                    ) for line_no, line_str in enumerate(lines)
+                    if len(line_str.strip()) > 0
+                ]
+            except UnicodeDecodeError:
+                self.result = []
 
 class FolderLineInputHandler(sublime_plugin.ListInputHandler):
     def name(self):
@@ -100,6 +100,12 @@ class FuzzyProjectLineCommand(sublime_plugin.WindowCommand):
         self._go_to_file_line(view, line)
 
     def _go_to_file_line(self, view, line):
+        if view.is_loading():
+            sublime.set_timeout_async(
+                lambda: self._go_to_file_line(view, line),
+                50
+            )
+            return
         # Convert from 1 based to a 0 based line number
         line = int(line) - 1
 
