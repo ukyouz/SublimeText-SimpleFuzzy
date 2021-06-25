@@ -1,0 +1,4 @@
+[
+    { "caption": "Fuzzy Line", "command": "fuzzy_line" },
+    { "caption": "Fuzzy Project Line", "command": "fuzzy_project_line" },
+]
