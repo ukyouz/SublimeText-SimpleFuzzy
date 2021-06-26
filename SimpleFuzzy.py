@@ -23,7 +23,7 @@ class EditorLineInputHandler(sublime_plugin.ListInputHandler):
                 text=line_str,
                 value=pos,
             ) for pos, line_str in zip(positions, lines)
-            if re.match('\s*\d+$', line_str) is None
+            if re.match('\s*\d+$', line_str) is None and len(line_str)
         ]
 
 class FuzzyLineCommand(sublime_plugin.WindowCommand):
