@@ -39,9 +39,10 @@ class FuzzyLineCommand(sublime_plugin.WindowCommand):
             return None
 
 class GrepFileLinesThread(threading.Thread):
-    def __init__(self, folder, filename, timeout=30):
+    def __init__(self, folder, filename, encoding='UTF-8', timeout=30):
         self.folder = folder
-        self.filename = filename.decode('utf-8')
+        self.filename = filename
+        self.encoding = encoding
         self.rel_filename = self.filename.replace(folder, '')
         self.timeout = timeout
         self.result = None
@@ -49,7 +50,7 @@ class GrepFileLinesThread(threading.Thread):
 
     def run(self):
         liens = []
-        with open(self.filename, 'r', encoding='utf-8') as fs:
+        with open(self.filename, 'r', encoding=self.encoding) as fs:
             try:
                 lines = fs.readlines()
                 self.result = [
@@ -72,14 +73,23 @@ class FolderLineInputHandler(sublime_plugin.ListInputHandler):
 
     def list_items(self):
         window = sublime.active_window()
-        folder = window.folders()[0]
-        rg_files = subprocess.check_output('rg --files %s'%folder, shell=True)
-        file_list = rg_files.split(b'\n')
+        folders = window.folders()
+        if len(folders) == 0:
+            sublime.error_message('No project folder found for Fuzzy Project Line search.')
+            return []
+        active_view = window.active_view()
+        active_folder = next(
+            (f for f in folders if f in (active_view.file_name() or '')),
+            folders[0]
+        )
+        encoding = active_view.encoding() if active_view.encoding() != 'Undefined' else 'UTF-8'
+        print('fuzzy project in: %s with Encoding=%s'%(active_folder, encoding))
+        file_list = self._list_files(active_folder, encoding)
         threads = []
         for file in file_list:
             if not os.path.exists(file):
                 continue
-            thread = GrepFileLinesThread(folder, file)
+            thread = GrepFileLinesThread(active_folder, file, encoding)
             thread.start()
             threads.append(thread)
 
@@ -89,6 +99,24 @@ class FolderLineInputHandler(sublime_plugin.ListInputHandler):
             lines += thread.result
 
         return lines
+
+    # return filenames including folder name
+    def _list_files(self, folder, encoding='UTF-8'):
+        OK = 0
+        if os.system('which rg') == OK:
+            rg_files = subprocess.check_output(
+                'rg --files %s'%folder, shell=True
+            ).splitlines()
+            file_list = [f.decode(encoding) for f in rg_files]
+        if os.system('git -C %s status'%folder) == OK:
+            git_files = subprocess.check_output(
+                'git -C %s ls-files'%folder, shell=True
+            ).splitlines()
+            file_list = [os.path.join(folder, f.decode(encoding)) for f in git_files]
+        else:
+            file_list = [f[0] for f in os.walk(folder)]
+
+        return file_list
 
 class FuzzyProjectLineCommand(sublime_plugin.WindowCommand):
     def run(self, file_lines):
