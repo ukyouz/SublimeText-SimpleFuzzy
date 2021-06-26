@@ -108,13 +108,15 @@ class FolderLineInputHandler(sublime_plugin.ListInputHandler):
                 'rg --files %s'%folder, shell=True
             ).splitlines()
             file_list = [f.decode(encoding) for f in rg_files]
-        if os.system('git -C %s status'%folder) == OK:
+        elif os.system('git -C %s status'%folder) == OK:
             git_files = subprocess.check_output(
                 'git -C %s ls-files'%folder, shell=True
             ).splitlines()
             file_list = [os.path.join(folder, f.decode(encoding)) for f in git_files]
         else:
-            file_list = [f[0] for f in os.walk(folder)]
+            file_list = []
+            for root, dirs, files in os.walk(folder):
+                file_list += [os.path.join(root, f) for f in files]
 
         return file_list
 
