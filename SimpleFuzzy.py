@@ -49,22 +49,30 @@ class GrepFileLinesThread(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
-        liens = []
+        self.result = self._read_filelines(self.filename)
+
+    def _read_filelines(self, filename):
         with open(self.filename, 'r', encoding=self.encoding) as fs:
             try:
-                lines = fs.readlines()
-                self.result = [
+                lines = [
+                    l.strip().replace('\t', '')
+                    for l in fs.readlines()
+                ]
+                return [
                     sublime.ListInputItem(
-                        text=line_str.strip().replace('\t', ''),
+                        text=line_str,
                         value=(self.filename, line_no + 1),
                         annotation='%s:%s'%(self.rel_filename, line_no+1),
                     ) for line_no, line_str in enumerate(lines)
-                    if len(line_str.strip()) > 0
+                    if len(line_str) > 0
                 ]
             except UnicodeDecodeError:
-                self.result = []
+                return []
 
 class FolderLineInputHandler(sublime_plugin.ListInputHandler):
+    def __init__(self, window):
+        self.window = window
+
     def name(self):
         return "file_lines"
 
@@ -72,12 +80,11 @@ class FolderLineInputHandler(sublime_plugin.ListInputHandler):
         return "Search content line..."
 
     def list_items(self):
-        window = sublime.active_window()
-        folders = window.folders()
+        folders = self.window.folders()
         if len(folders) == 0:
             sublime.error_message('No project folder found for Fuzzy Project Line search.')
             return []
-        active_view = window.active_view()
+        active_view = self.window.active_view()
         active_folder = next(
             (f for f in folders if f in (active_view.file_name() or '')),
             folders[0]
@@ -86,14 +93,18 @@ class FolderLineInputHandler(sublime_plugin.ListInputHandler):
         print('fuzzy project in: %s with Encoding=%s'%(active_folder, encoding))
         file_list = self._list_files(active_folder, encoding)
         threads = []
+        lines = []
         for file in file_list:
             if not os.path.exists(file):
                 continue
-            thread = GrepFileLinesThread(active_folder, file, encoding)
-            thread.start()
-            threads.append(thread)
+            view = self.window.find_open_file(file)
+            if view == None:
+                thread = GrepFileLinesThread(active_folder, file, encoding)
+                thread.start()
+                threads.append(thread)
+            else:
+                lines += self._grep_view_lines(active_folder, view)
 
-        lines = []
         for thread in threads:
             thread.join()
             lines += thread.result
@@ -119,6 +130,23 @@ class FolderLineInputHandler(sublime_plugin.ListInputHandler):
                 file_list += [os.path.join(root, f) for f in files]
 
         return file_list
+
+    def _grep_view_lines(self, folder, view):
+        filename = view.file_name()
+        rel_filename = filename.replace(folder, '')
+        regions = view.find_all('.*\n')
+        lines = [
+            (line_no + 1, view.substr(region).strip().replace('\t', ''))
+            for line_no, region in enumerate(regions)
+        ]
+        return [
+            sublime.ListInputItem(
+                text=line_str,
+                value=(filename, line_no),
+                annotation='%s:%s'%(rel_filename, line_no),
+            ) for line_no, line_str in lines
+            if len(line_str.strip()) > 0
+        ]
 
 class FuzzyProjectLineCommand(sublime_plugin.WindowCommand):
     def run(self, file_lines):
@@ -151,7 +179,7 @@ class FuzzyProjectLineCommand(sublime_plugin.WindowCommand):
         
     def input(self, args):
         if "file_lines" not in args:
-            return FolderLineInputHandler()
+            return FolderLineInputHandler(self.window)
         else:
             return None
 
