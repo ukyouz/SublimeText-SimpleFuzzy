@@ -7,7 +7,7 @@ import subprocess
 
 class EditorLineInputHandler(sublime_plugin.ListInputHandler):
     def name(self):
-        return "name"
+        return "pos"
 
     def placeholder(self):
         return "Search content line..."
@@ -21,21 +21,19 @@ class EditorLineInputHandler(sublime_plugin.ListInputHandler):
         return [
             sublime.ListInputItem(
                 text=line_str,
-                value=(line_str,pos),
+                value=pos,
             ) for pos, line_str in zip(positions, lines)
             if re.match('\s*\d+$', line_str) is None
         ]
 
 class FuzzyLineCommand(sublime_plugin.WindowCommand):
-    def run(self, name):
-        # print(name)
-        pos=name[1]
+    def run(self, pos):
         self.window.active_view().sel().clear()
         self.window.active_view().sel().add(sublime.Region(pos))
         self.window.active_view().show_at_center(sublime.Region(pos))
 
     def input(self, args):
-        if "name" not in args:
+        if "pos" not in args:
             return EditorLineInputHandler()
         else:
             return None
@@ -67,7 +65,7 @@ class GrepFileLinesThread(threading.Thread):
 
 class FolderLineInputHandler(sublime_plugin.ListInputHandler):
     def name(self):
-        return "name"
+        return "file_lines"
 
     def placeholder(self):
         return "Search content line..."
@@ -93,9 +91,9 @@ class FolderLineInputHandler(sublime_plugin.ListInputHandler):
         return lines
 
 class FuzzyProjectLineCommand(sublime_plugin.WindowCommand):
-    def run(self, name):
-        file = name[0]
-        line = name[1]
+    def run(self, file_lines):
+        file = file_lines[0]
+        line = file_lines[1]
         view = self.window.open_file(file)
         self._go_to_file_line(view, line)
 
@@ -122,7 +120,7 @@ class FuzzyProjectLineCommand(sublime_plugin.WindowCommand):
         view.show_at_center(pt)
         
     def input(self, args):
-        if "name" not in args:
+        if "file_lines" not in args:
             return FolderLineInputHandler()
         else:
             return None
