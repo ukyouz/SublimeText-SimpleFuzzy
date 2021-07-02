@@ -185,30 +185,3 @@ class FuzzyProjectLineCommand(sublime_plugin.WindowCommand):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
