@@ -116,7 +116,6 @@ class FolderLineInputHandler(sublime_plugin.ListInputHandler):
     # return filenames including folder name
     def _list_files(self, folder, encoding='UTF-8'):
         user_pref_cmd = self.view.settings().get('simple_fuzzy_ls_cmd', '')
-        user_pref_chk = user_pref_cmd.split()[0] if len(user_pref_cmd) else ''
 
         def _fmt_cmd(fmt):
             return '{_fmt}'.format(_fmt=fmt).format(folder=folder)
@@ -146,18 +145,15 @@ class FolderLineInputHandler(sublime_plugin.ListInputHandler):
         file_list = []
         if user_pref_cmd in default_cmds:
             file_list = default_cmds[user_pref_cmd]()
-        else:
-            chk_cmd = 'which %s' % user_pref_chk
-            ls_cmd = user_pref_cmd
-            file_list = _ls_dir(chk_cmd, ls_cmd)
+        elif len(user_pref_cmd):
+            user_chk = user_pref_cmd.split()[0] if len(user_pref_cmd) else ''
+            chk_cmd = 'which %s' % user_chk
+            file_list = _ls_dir(chk_cmd, user_pref_cmd)
         
-        if len(file_list) == 0:
-            for cmd in ('rg', 'git'):
-                file_list = default_cmds[cmd]()
-                if len(file_list):
-                     break
-        if len(file_list) == 0:
-            file_list = _builtin_ls()
+        for cmd in ('rg', 'git', 'built-in'):
+            if len(file_list):
+                 break
+            file_list = default_cmds[cmd]()
         if len(file_list) and not os.path.exists(file_list[0]):
             # relative -> fullpath
             file_list = [os.path.join(folder, f) for f in file_list]
