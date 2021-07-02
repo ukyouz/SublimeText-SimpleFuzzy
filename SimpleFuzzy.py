@@ -72,6 +72,7 @@ class GrepFileLinesThread(threading.Thread):
 class FolderLineInputHandler(sublime_plugin.ListInputHandler):
     def __init__(self, window):
         self.window = window
+        self.view = self.window.active_view()
 
     def name(self):
         return "file_lines"
@@ -84,13 +85,12 @@ class FolderLineInputHandler(sublime_plugin.ListInputHandler):
         if len(folders) == 0:
             sublime.error_message('No project folder found for Fuzzy Project Line search.')
             return []
-        active_view = self.window.active_view()
         active_folder = next(
-            (f for f in folders if f in (active_view.file_name() or '')),
+            (f for f in folders if f in (self.view.file_name() or '')),
             folders[0]
         )
-        encoding = active_view.encoding() if active_view.encoding() != 'Undefined' else 'UTF-8'
         print('fuzzy project in: %s with Encoding=%s'%(active_folder, encoding))
+        encoding = self.view.encoding() if self.view.encoding() != 'Undefined' else 'UTF-8'
         file_list = self._list_files(active_folder, encoding)
         threads = []
         lines = []
@@ -113,23 +113,52 @@ class FolderLineInputHandler(sublime_plugin.ListInputHandler):
 
     # return filenames including folder name
     def _list_files(self, folder, encoding='UTF-8'):
-        OK = 0
-        if os.system('which rg') == OK:
-            rg_files = subprocess.check_output(
-                'rg --files %s'%folder, shell=True
-            ).splitlines()
-            file_list = [f.decode(encoding) for f in rg_files]
-        elif os.system('git -C %s status'%folder) == OK:
-            git_files = subprocess.check_output(
-                'git -C %s ls-files'%folder, shell=True
-            ).splitlines()
-            file_list = [os.path.join(folder, f.decode(encoding)) for f in git_files]
-        else:
-            file_list = []
-            for root, dirs, files in os.walk(folder):
-                file_list += [os.path.join(root, f) for f in files]
+        user_pref_cmd = self.view.settings().get('simple_fuzzy_ls_cmd', '')
+        user_pref_chk = user_pref_cmd.split()[0] if len(user_pref_cmd) else ''
 
-        return file_list
+        def _fmt_cmd(fmt):
+            return '{_fmt}'.format(_fmt=fmt).format(folder=folder)
+
+        def _ls_dir(check_cmd, ls_cmd):
+        OK = 0
+            if os.system(_fmt_cmd(check_cmd)) != OK:
+                return []
+            f_list = subprocess.check_output(_fmt_cmd(ls_cmd), shell=True).splitlines()
+            return [f.decode(encoding) for f in f_list]
+
+        def _builtin_ls():
+            # default fallback for listing files in folder
+            f_list = []
+            for root, dirs, files in os.walk(folder):
+                f_list += [os.path.join(root, f) for f in files]
+            return f_list
+
+        default_cmds = {
+            'rg': lambda: _ls_dir('which rg', 'rg --files "{folder}"'),
+            'git': lambda: _ls_dir('git -C "{folder}" status', 'git -C "{folder}" ls-files'),
+            'built-in': _builtin_ls,
+        }
+
+        file_list = []
+        if user_pref_cmd in default_cmds:
+            file_list = default_cmds[user_pref_cmd]()
+        else:
+            chk_cmd = 'which %s' % user_pref_chk
+            ls_cmd = user_pref_cmd
+            file_list = _ls_dir(chk_cmd, ls_cmd)
+        
+        if len(file_list) == 0:
+            for cmd in ('rg', 'git'):
+                file_list = default_cmds[cmd]()
+                if len(file_list):
+                     break
+        if len(file_list) == 0:
+            file_list = _builtin_ls()
+        if len(file_list) and not os.path.exists(file_list[0]):
+            # relative -> fullpath
+            file_list = [os.path.join(folder, f) for f in file_list]
+
+        return [f for f in file_list if os.path.isfile(f)]
 
     def _grep_view_lines(self, folder, view):
         filename = view.file_name()
