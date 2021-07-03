@@ -4,10 +4,14 @@ Jump to everywhere by built-in fuzzy function to perform a line-based searching 
 
 ## Usage
 
-Add key binding to the following commands:
+Example key bindings to the window commands:
 
-- `fuzzy_current_file`
-- `fuzzy_active_project`
+```json
+[
+	{ "keys": ["super+k", "super+f"], "command": "fuzzy_current_file"},
+	{ "keys": ["super+k", "super+p"], "command": "fuzzy_active_project"},
+]
+```
 
 Or, simply run the following commands by `Ctrl-Shift-P` in command palette:
 
@@ -16,7 +20,7 @@ Or, simply run the following commands by `Ctrl-Shift-P` in command palette:
 
 ## Customization
 
-Your favorite file listing command can be specified by user settings.
+Your favorite file listing command can be specified by adding user setting.
 
 ```json
 {
@@ -35,12 +39,10 @@ User can also specify the prefer one as: `rg`, `git`, or `built-in`
 
 ## Debugging
 
-Run the following command in ccommand palette to toggle console log.
+Run the following command in Console view to toggle console log.
+
 ```python
 >>> window.run_command('simple_fuzzy_debug_toggle')
-fuzzy project in: /path/to/project with Encoding=UTF-8
-git -C "/path/to/project" status
-git -C "/path/to/project" ls-files
 ```
 
 ## Known issues
