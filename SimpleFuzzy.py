@@ -7,6 +7,15 @@ import subprocess
 
 log_enable = False
 
+def debug_log(string):
+    if log_enable:
+        print(string)
+
+class SimpleFuzzyDebugToggleCommand(sublime_plugin.WindowCommand):
+    def run(self):
+        global log_enable
+        log_enable = not log_enable
+
 class EditorLineInputHandler(sublime_plugin.ListInputHandler):
     def name(self):
         return "pos"
@@ -92,7 +101,7 @@ class FolderLineInputHandler(sublime_plugin.ListInputHandler):
             folders[0]
         )
         encoding = self.view.encoding() if self.view.encoding() != 'Undefined' else 'UTF-8'
-        print('fuzzy project in: %s with Encoding=%s\n'%(active_folder, encoding) * log_enable, end='')
+        debug_log('fuzzy project in: %s with Encoding=%s'%(active_folder, encoding))
         file_list = self._list_files(active_folder, encoding)
         threads = []
         lines = []
@@ -122,10 +131,10 @@ class FolderLineInputHandler(sublime_plugin.ListInputHandler):
 
         def _ls_dir(check_cmd, ls_cmd):
             OK = 0
-            print((_fmt_cmd(check_cmd)+'\n') * log_enable, end='')
+            debug_log(_fmt_cmd(check_cmd))
             if os.system(_fmt_cmd(check_cmd)) != OK:
                 return []
-            print((_fmt_cmd(ls_cmd)+'\n') * log_enable, end='')
+            debug_log(_fmt_cmd(ls_cmd))
             f_list = subprocess.check_output(_fmt_cmd(ls_cmd), shell=True).splitlines()
             return [f.decode(encoding) for f in f_list]
 
@@ -211,8 +220,3 @@ class FuzzyActiveProjectCommand(sublime_plugin.WindowCommand):
             return FolderLineInputHandler(self.window)
         else:
             return None
-
-class SimpleFuzzyDebugToggleCommand(sublime_plugin.WindowCommand):
-    def run(self):
-        global log_enable
-        log_enable = not log_enable
