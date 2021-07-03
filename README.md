@@ -8,13 +8,13 @@ If you open up multiple folders in the same sublime window, the folder relative 
 
 Add key binding to the following commands:
 
-- `fuzzy_line`
-- `fuzzy_project_line`
+- `fuzzy_current_file`
+- `fuzzy_active_project`
 
 Or, simply run the following commands by `Ctrl-Shift-P` in command palette:
 
-- `Fuzzy Line`
-- `Fuzzy Project Line`
+- `SimpleFuzzy: Current File…`
+- `SimpleFuzzy: Active Project…`
 
 ## Costomization
 

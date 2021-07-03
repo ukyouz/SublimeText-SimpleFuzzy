@@ -28,7 +28,7 @@ class EditorLineInputHandler(sublime_plugin.ListInputHandler):
             if re.match('\s*\d+$', line_str) is None and len(line_str)
         ]
 
-class FuzzyLineCommand(sublime_plugin.WindowCommand):
+class FuzzyCurrentFileCommand(sublime_plugin.WindowCommand):
     def run(self, pos):
         self.window.active_view().sel().clear()
         self.window.active_view().sel().add(sublime.Region(pos))
@@ -177,7 +177,7 @@ class FolderLineInputHandler(sublime_plugin.ListInputHandler):
             if len(line_str.strip()) > 0
         ]
 
-class FuzzyProjectLineCommand(sublime_plugin.WindowCommand):
+class FuzzyActiveProjectCommand(sublime_plugin.WindowCommand):
     def run(self, file_lines):
         file = file_lines[0]
         line = file_lines[1]

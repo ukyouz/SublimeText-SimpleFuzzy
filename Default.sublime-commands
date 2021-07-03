@@ -1,4 +1,4 @@
 [
-    { "caption": "Fuzzy Line", "command": "fuzzy_line" },
-    { "caption": "Fuzzy Project Line", "command": "fuzzy_project_line" },
+    { "caption": "SimpleFuzzy: Current File…", "command": "fuzzy_current_file" },
+    { "caption": "SimpleFuzzy: Active Project…", "command": "fuzzy_active_project" },
 ]
