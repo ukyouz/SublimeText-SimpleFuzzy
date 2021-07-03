@@ -216,5 +216,3 @@ class SimpleFuzzyDebugToggleCommand(sublime_plugin.WindowCommand):
     def run(self):
         global log_enable
         log_enable = not log_enable
-
-        
