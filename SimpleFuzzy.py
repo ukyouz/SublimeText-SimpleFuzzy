@@ -39,9 +39,10 @@ class EditorLineInputHandler(sublime_plugin.ListInputHandler):
 
 class FuzzyCurrentFileCommand(sublime_plugin.WindowCommand):
     def run(self, pos):
-        self.window.active_view().sel().clear()
-        self.window.active_view().sel().add(sublime.Region(pos))
-        self.window.active_view().show_at_center(sublime.Region(pos))
+        view = self.window.active_view()
+        view.sel().clear()
+        view.sel().add(sublime.Region(pos))
+        view.show_at_center(sublime.Region(pos))
 
     def input(self, args):
         if "pos" not in args:
