@@ -17,6 +17,9 @@ class SimpleFuzzyDebugToggleCommand(sublime_plugin.WindowCommand):
         log_enable = not log_enable
 
 class EditorLineInputHandler(sublime_plugin.ListInputHandler):
+    def __init__(self, view):
+        self.view = view
+
     def name(self):
         return "pos"
 
@@ -24,10 +27,8 @@ class EditorLineInputHandler(sublime_plugin.ListInputHandler):
         return "Search content line..."
 
     def list_items(self):
-        window = sublime.active_window()
-        view = window.active_view()
-        regions = view.find_all('.+\n')
-        lines = [view.substr(region).strip().replace('\t', '') for region in regions]
+        regions = self.view.find_all('.+\n')
+        lines = [self.view.substr(region).strip().replace('\t', '') for region in regions]
         positions = [r.begin() for r in regions]
         return [
             sublime.ListInputItem(
@@ -37,16 +38,15 @@ class EditorLineInputHandler(sublime_plugin.ListInputHandler):
             if re.match('\s*\d+$', line_str) is None and len(line_str)
         ]
 
-class FuzzyCurrentFileCommand(sublime_plugin.WindowCommand):
-    def run(self, pos):
-        view = self.window.active_view()
-        view.sel().clear()
-        view.sel().add(sublime.Region(pos))
-        view.show_at_center(sublime.Region(pos))
+class FuzzyCurrentFileCommand(sublime_plugin.TextCommand):
+    def run(self, edit, pos):
+        self.view.sel().clear()
+        self.view.sel().add(sublime.Region(pos))
+        self.view.show_at_center(sublime.Region(pos))
 
     def input(self, args):
         if "pos" not in args:
-            return EditorLineInputHandler()
+            return EditorLineInputHandler(self.view)
         else:
             return None
 
