@@ -132,11 +132,15 @@ class FolderLineInputHandler(sublime_plugin.ListInputHandler):
 
         def _ls_dir(check_cmd, ls_cmd):
             OK = 0
-            debug_log(_fmt_cmd(check_cmd))
-            if os.system(_fmt_cmd(check_cmd)) != OK:
-                return []
-            debug_log(_fmt_cmd(ls_cmd))
-            f_list = subprocess.check_output(_fmt_cmd(ls_cmd), shell=True).splitlines()
+            if len(check_cmd):
+                debug_log('check_cmd: {!r}'.format(_fmt_cmd(check_cmd)))
+                if os.system(_fmt_cmd(check_cmd)) != OK:
+                    return []
+            debug_log('ls_cmd: {!r}'.format(_fmt_cmd(ls_cmd)))
+            try:
+                f_list = subprocess.check_output(_fmt_cmd(ls_cmd), shell=True).splitlines()
+            except subprocess.CalledProcessError:
+                f_list = []
             return [f.decode(encoding) for f in f_list]
 
         def _builtin_ls():
@@ -147,7 +151,7 @@ class FolderLineInputHandler(sublime_plugin.ListInputHandler):
             return f_list
 
         default_cmds = {
-            'rg': lambda: _ls_dir('which rg', 'rg --files "{folder}"'),
+            'rg': lambda: _ls_dir('', 'rg --files "{folder}"'),
             'git': lambda: _ls_dir('git -C "{folder}" status', 'git -C "{folder}" ls-files'),
             'built-in': _builtin_ls,
         }
