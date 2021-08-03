@@ -142,6 +142,7 @@ class FolderLineInputHandler(sublime_plugin.ListInputHandler):
                 f_list = subprocess.check_output(_fmt_cmd(ls_cmd), shell=True).splitlines()
             except subprocess.CalledProcessError:
                 f_list = []
+            debug_log('ls_cmd: {} file(s) found'.format(len(f_list)))
             return [f.decode(encoding) for f in f_list]
 
         def _builtin_ls():
