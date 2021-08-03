@@ -20,15 +20,17 @@ Or, simply run the following commands by `Ctrl-Shift-P` in command palette:
 
 ## Customization
 
-Your favorite file listing command can be specified by adding user setting.
+Your favorite file listing command and checking command can be specified by adding user settings.
 
 ```json
 {
-	"simple_fuzzy_ls_cmd": "ag foo {folder}"
+	"simple_fuzzy_ls_cmd": "ag foo {folder}",
+	"simple_fuzzy_chk_cmd": "where ag",
 }
 ```
 
-Variable `{folder}` is the target folder to be searched. In such example, `which ag` will be used to check if the command exists.
+- Variable `{folder}` is the target folder to be searched.
+- Command specified in `simple_fuzzy_chk_cmd` will only be used to check if the listing command `simple_fuzzy_ls_cmd` should be used.
 
 If user-defined command fails or not specified, default using the following commands for fallback:
 1. `rg`: `rg --files "{folder}"` (highly recommended, required [ripgrep](https://github.com/BurntSushi/ripgrep))
