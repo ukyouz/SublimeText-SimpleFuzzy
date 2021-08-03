@@ -126,6 +126,7 @@ class FolderLineInputHandler(sublime_plugin.ListInputHandler):
     # return filenames including folder name
     def _list_files(self, folder, encoding='UTF-8'):
         user_pref_cmd = self.view.settings().get('simple_fuzzy_ls_cmd', '')
+        user_pref_chk = self.view.settings().get('simple_fuzzy_chk_cmd', '')
 
         def _fmt_cmd(fmt):
             return '{_fmt}'.format(_fmt=fmt).format(folder=folder)
@@ -160,8 +161,7 @@ class FolderLineInputHandler(sublime_plugin.ListInputHandler):
         if user_pref_cmd in default_cmds:
             file_list = default_cmds[user_pref_cmd]()
         elif len(user_pref_cmd):
-            user_chk = user_pref_cmd.split()[0] if len(user_pref_cmd) else ''
-            chk_cmd = 'which %s' % user_chk
+            chk_cmd = user_pref_chk
             file_list = _ls_dir(chk_cmd, user_pref_cmd)
         
         for cmd in ('rg', 'git', 'built-in'):
