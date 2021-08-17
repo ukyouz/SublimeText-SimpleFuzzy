@@ -19,6 +19,8 @@ class SimpleFuzzyDebugToggleCommand(sublime_plugin.WindowCommand):
 class EditorLineInputHandler(sublime_plugin.ListInputHandler):
     def __init__(self, view):
         self.view = view
+        self._backup_region = view.sel()[0]
+        self._init = True
 
     def name(self):
         return "pos"
@@ -38,11 +40,22 @@ class EditorLineInputHandler(sublime_plugin.ListInputHandler):
             if re.match('\s*\d+$', line_str) is None and len(line_str)
         ]
 
+    def cancel(self):
+        self.view.sel().clear()
+        self.view.sel().add(self._backup_region)
+        self.view.show_at_center(self._backup_region)
+
+    def preview(self, pos):
+        if self._init and pos == 0:
+            return
+        self._init = False
+        row, col = self.view.rowcol(pos)
+        self.view.run_command("goto_line", {"line": row+1})
+
 class FuzzyCurrentFileCommand(sublime_plugin.TextCommand):
     def run(self, edit, pos):
-        self.view.sel().clear()
-        self.view.sel().add(sublime.Region(pos))
-        self.view.show_at_center(sublime.Region(pos))
+        row, col = self.view.rowcol(pos)
+        self.view.run_command("goto_line", {"line": row+1})
 
     def input(self, args):
         if "pos" not in args:
@@ -81,16 +94,38 @@ class GrepFileLinesThread(threading.Thread):
             except UnicodeDecodeError:
                 return []
 
+def _await_view_goto_line(view, line):
+    if view.is_loading():
+        sublime.set_timeout_async(lambda: _await_view_goto_line(view, line), 50)
+        return
+    # wait for view rendering current line in center
+    sublime.set_timeout_async(lambda: view.run_command("goto_line", {"line": line}), 10)
+
 class FolderLineInputHandler(sublime_plugin.ListInputHandler):
+
     def __init__(self, window):
         self.window = window
         self.view = self.window.active_view()
+        self._backup_region = self.view.sel()[0]
+        self._init = True
 
     def name(self):
         return "file_lines"
 
     def placeholder(self):
         return "Search content line..."
+
+    def cancel(self):
+        self.window.focus_view(self.view)
+        self.view.sel().clear()
+        self.view.sel().add(self._backup_region)
+        self.view.show_at_center(self._backup_region)
+
+    def preview(self, file_lines):
+        file = file_lines[0]
+        line = file_lines[1]
+        view = self.window.open_file(file, sublime.TRANSIENT)
+        _await_view_goto_line(view, line)
 
     def list_items(self):
         folders = self.window.folders()
@@ -197,29 +232,7 @@ class FuzzyActiveProjectCommand(sublime_plugin.WindowCommand):
         file = file_lines[0]
         line = file_lines[1]
         view = self.window.open_file(file)
-        self._go_to_file_line(view, line)
-
-    def _go_to_file_line(self, view, line):
-        if view.is_loading():
-            sublime.set_timeout_async(
-                lambda: self._go_to_file_line(view, line),
-                50
-            )
-            return
-        # Convert from 1 based to a 0 based line number
-        line = int(line) - 1
-
-        # Negative line numbers count from the end of the buffer
-        if line < 0:
-            lines, _ = view.rowcol(view.size())
-            line = lines + line + 1
-
-        pt = view.text_point(line, 0)
-
-        view.sel().clear()
-        view.sel().add(sublime.Region(pt))
-
-        view.show_at_center(pt)
+        _await_view_goto_line(view, line)
         
     def input(self, args):
         if "file_lines" not in args:
